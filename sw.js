@@ -1,4 +1,4 @@
-const CACHE_NAME = 'km2-v5';
+const CACHE_NAME = 'km2-v6';
 const APP_ASSETS = ['./', './index.html', './style.css', './data.js', './app.js', './manifest.json', './icon.svg', './.nojekyll'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_ASSETS)).then(() => self.skipWaiting()));
