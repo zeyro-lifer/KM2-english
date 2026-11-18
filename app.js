@@ -71,7 +71,7 @@ $('#nameForm').addEventListener('submit', e => {
 });
 $('#resetProgress').onclick = () => {
   if (expired) return;
-  if (confirm('Точно сбросить прогресс, результаты и историю ошибок на этом устройстве? Никнейм останется прежним. Это действие нельзя отменить.')) {
+  if (confirm('Подтвердить? Сбросить весь прогресс, результаты и историю ошибок на этом устройстве? Никнейм останется прежним. Отменить это действие будет нельзя.')) {
     const fixedName = state.name || '';
     state = {name: fixedName}; session = null; save();
     $('#workspace').hidden = true; $('#dashboard').hidden = false;
