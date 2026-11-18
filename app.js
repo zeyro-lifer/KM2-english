@@ -69,24 +69,20 @@ $('#nameForm').addEventListener('submit', e => {
   if (!name) return;
   state.name = name.slice(0, 24); save(); init();
 });
-$('#changeName').onclick = () => {
-  if (expired) return;
-  $('#nickname').value = state.name || '';
-  $('#welcome').hidden = false; $('#dashboard').hidden = true;
-};
 $('#resetProgress').onclick = () => {
   if (expired) return;
-  if (confirm('Точно сбросить весь прогресс, результаты, историю ошибок и никнейм на этом устройстве? Это действие нельзя отменить.')) {
-    localStorage.removeItem(STORE); state = {}; session = null;
-    $('#workspace').hidden = true; $('#dashboard').hidden = true; $('#welcome').hidden = false;
-    $('#nickname').value = ''; refreshStats();
+  if (confirm('Точно сбросить прогресс, результаты и историю ошибок на этом устройстве? Никнейм останется прежним. Это действие нельзя отменить.')) {
+    const fixedName = state.name || '';
+    state = {name: fixedName}; session = null; save();
+    $('#workspace').hidden = true; $('#dashboard').hidden = false;
+    $('#userName').textContent = fixedName; refreshStats();
   }
 };
 function accuracy(items) {
   const stats = state.itemStats || {};
   const total = items.reduce((n, item) => n + (stats[key(item)]?.attempts || 0), 0);
   const correct = items.reduce((n, item) => n + (stats[key(item)]?.correct || 0), 0);
-  return total ? `${Math.round(correct / total * 100)}%` : '—';
+  return total ? `${Math.round(correct / total * 100)}%` : '-';
 }
 function readiness() {
   const mastered = state.mastered || {};
@@ -97,7 +93,7 @@ function refreshStats() {
   const learned = all.filter(item => mastered[key(item)]).length;
   const pct = Math.round(learned / TOTAL * 100);
   $('#learned').textContent = learned;
-  $('#accuracy').textContent = state.total ? `${Math.round((state.correct || 0) / state.total * 100)}%` : '—';
+  $('#accuracy').textContent = state.total ? `${Math.round((state.correct || 0) / state.total * 100)}%` : '-';
   $('#tests').textContent = state.tests || 0;
   $('#wordAccuracy').textContent = accuracy(words);
   $('#defAccuracy').textContent = accuracy(defs);
@@ -111,7 +107,7 @@ function showView(view) {
   if (expired) return;
   $('#dashboard').hidden = true; $('#workspace').hidden = false;
   const titles = {
-    study:['РАЗДЕЛ 01','Изучение по порядку','Проходи материал последовательно небольшими блоками. После каждого блока из 10 заданий — зачёт.'],
+    study:['РАЗДЕЛ 01','Изучение по порядку','Проходи материал последовательно небольшими блоками. После каждого блока из 10 заданий - зачёт.'],
     marathon:['РАЗДЕЛ 02','Марафон всех слов и терминов','Все уникальные карточки в случайном порядке. Для лексики можно выбрать вариант или ввести точный перевод на русском.'],
     glossary:['РАЗДЕЛ 03','Глоссарий','Все уникальные слова и определения из двух учебных документов.'],
     mistakes:['ПОВТОРЕНИЕ','Работа над ошибками','Повтори карточки, в которых ранее ошибался. После правильного ответа карточка исчезнет из этого списка.']
@@ -238,21 +234,21 @@ function showFinal() {
   state.lastSessionStats = {mode:s.mode,score:s.correct,total:s.items.length,words:wordCount,definitions:defCount,date:new Date().toISOString()};
   save(); refreshStats();
   const title = s.mode==='study'?'ИЗУЧЕНИЯ':s.mode==='mistakes'?'ПОВТОРЕНИЯ ОШИБОК':'МАРАФОНА';
-  $('#workArea').innerHTML = `<div class="result"><div class="eyebrow">РЕЗУЛЬТАТ ${title}</div><div class="score">${s.correct}/${s.items.length}</div><h3>${pct>=90?'Превосходно!':pct>=70?'Хороший результат!':'Есть куда расти — повторение поможет.'}</h3><p class="muted">Правильных ответов: ${pct}%. Пройдено заданий: ${s.items.length}.</p>${s.mode==='marathon'?`<div class="split-results"><div><span>Слова и выражения</span><strong>${wordRight}/${wordCount} · ${wordCount?Math.round(wordRight/wordCount*100):0}%</strong></div><div><span>Определения</span><strong>${defRight}/${defCount} · ${defCount?Math.round(defRight/defCount*100):0}%</strong></div></div>`:''}<div class="result-actions"><button class="primary" id="again">Пройти ещё раз</button><button class="secondary" id="home">На главную</button></div></div>`;
+  $('#workArea').innerHTML = `<div class="result"><div class="eyebrow">РЕЗУЛЬТАТ ${title}</div><div class="score">${s.correct}/${s.items.length}</div><h3>${pct>=90?'Превосходно!':pct>=70?'Хороший результат!':'Есть куда расти - повторение поможет.'}</h3><p class="muted">Правильных ответов: ${pct}%. Пройдено заданий: ${s.items.length}.</p>${s.mode==='marathon'?`<div class="split-results"><div><span>Слова и выражения</span><strong>${wordRight}/${wordCount} · ${wordCount?Math.round(wordRight/wordCount*100):0}%</strong></div><div><span>Определения</span><strong>${defRight}/${defCount} · ${defCount?Math.round(defRight/defCount*100):0}%</strong></div></div>`:''}<div class="result-actions"><button class="primary" id="again">Пройти ещё раз</button><button class="secondary" id="home">На главную</button></div></div>`;
   $('#again').onclick = () => s.mode==='study'?startStudy():s.mode==='mistakes'?startMistakes():startMarathon();
   $('#home').onclick = () => $('#back').click();
 }
 function renderGlossary() {
   const rows = [
     ...words.map(item => ({term:item.term,expansion:item.expansion,detail:item.meaning,type:'Слово',kind:'word'})),
-    ...defs.map(item => ({term:item.term,detail:item.meaning,translation:item.translation,type:'Определение',kind:'definition'}))
+    ...defs.map(item => ({term:item.term,detail:item.meaning,translation:item.translation,ruDetail:item.ruMeaning,type:'Определение',kind:'definition'}))
   ];
   $('#workArea').innerHTML = `<input class="searchbar" id="search" placeholder="Поиск по английскому или русскому тексту…"><div class="filters"><button class="filter active" data-filter="all">Всё · ${TOTAL}</button><button class="filter" data-filter="word">Слова · ${words.length}</button><button class="filter" data-filter="definition">Определения · ${defs.length}</button></div><div class="glossary-wrap" id="rows"></div>`;
   let filter = 'all';
   function draw() {
     const query = normalizeAnswer($('#search').value);
-    const list = rows.filter(row => (filter==='all'||row.kind===filter) && normalizeAnswer(`${row.term} ${row.expansion||''} ${row.detail} ${row.translation||''}`).includes(query));
-    $('#rows').innerHTML = list.length ? list.map(row => `<div class="glossary-row"><div><span class="tag">${row.type.toUpperCase()}</span><br><strong>${escapeHtml(row.term)}</strong>${row.expansion?`<div class="glossary-expansion">${escapeHtml(row.expansion)}</div>`:''}${row.translation?`<div class="glossary-translation">${escapeHtml(row.translation)}</div>`:''}</div><p>${escapeHtml(row.detail)}</p></div>`).join('') : '<div class="empty">Ничего не найдено. Попробуй другой запрос.</div>';
+    const list = rows.filter(row => (filter==='all'||row.kind===filter) && normalizeAnswer(`${row.term} ${row.expansion||''} ${row.detail} ${row.translation||''} ${row.ruDetail||''}`).includes(query));
+    $('#rows').innerHTML = list.length ? list.map(row => `<div class="glossary-row"><div><span class="tag">${row.type.toUpperCase()}</span><br><strong>${escapeHtml(row.term)}</strong>${row.expansion?`<div class="glossary-expansion">${escapeHtml(row.expansion)}</div>`:''}${row.translation?`<div class="glossary-translation">${escapeHtml(row.translation)}</div>`:''}</div><div class="glossary-descriptions"><p>${escapeHtml(row.detail)}</p>${row.ruDetail?`<p class="glossary-ru-detail">${escapeHtml(row.ruDetail)}</p>`:''}</div></div>`).join('') : '<div class="empty">Ничего не найдено. Попробуй другой запрос.</div>';
   }
   $('#search').oninput = draw;
   document.querySelectorAll('[data-filter]').forEach(button => button.onclick = () => {
@@ -262,3 +258,6 @@ function renderGlossary() {
   draw();
 }
 init();
+
+const disclaimerClose = document.querySelector('#closeDisclaimer');
+if (disclaimerClose) disclaimerClose.addEventListener('click', () => { document.querySelector('#disclaimerOverlay').hidden = true; });

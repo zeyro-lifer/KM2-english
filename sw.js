@@ -1,4 +1,4 @@
-const CACHE_NAME = 'km2-v3';
+const CACHE_NAME = 'km2-v4';
 const APP_ASSETS = [
   './', './index.html', './style.css', './data.js', './app.js',
   './manifest.json', './icon.svg', './.nojekyll'
