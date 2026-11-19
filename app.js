@@ -107,7 +107,7 @@ function showView(view) {
   if (expired) return;
   $('#dashboard').hidden = true; $('#workspace').hidden = false;
   const titles = {
-    study:['РАЗДЕЛ 01','Изучение по порядку','Проходи материал последовательно небольшими блоками. После каждого блока из 10 заданий - зачёт.'],
+    study:['РАЗДЕЛ 01','Изучение по порядку','Проходи материал последовательно. Прогресс сохраняется, можно продолжить с места остановки.'],
     marathon:['РАЗДЕЛ 02','Марафон всех слов и терминов','Все уникальные карточки в случайном порядке. Для лексики можно выбрать вариант или ввести точный перевод на русском.'],
     glossary:['РАЗДЕЛ 03','Глоссарий','Все уникальные слова и определения из двух учебных документов.'],
     mistakes:['ПОВТОРЕНИЕ','Работа над ошибками','Повтори карточки, в которых ранее ошибался. После правильного ответа карточка исчезнет из этого списка.']
@@ -131,7 +131,7 @@ function shuffle(array) {
 function makeOptions(item, pool) {
   return shuffle([item, ...shuffle(pool.filter(x => x !== item)).slice(0, 3)]);
 }
-function startStudy() { session = {mode:'study',items:all,index:0,correct:0,answered:false,blockCorrect:0}; renderQuestion(); }
+function startStudy() { const idx = Math.min(Math.max(0, Number(state.studyIndex) || 0), all.length); if (idx >= all.length) { $('#workArea').innerHTML = `<div class="result"><div class="score">✓</div><h3>Весь материал пройден!</h3><p class="muted">Ты завершил изучение ${all.length} карточек. Прогресс сохранён.</p><div class="result-actions"><button class="primary" id="restartStudy">Повторить с начала</button><button class="secondary" id="home">На главную</button></div></div>`; $('#restartStudy').onclick = () => { state.studyIndex = 0; save(); startStudy(); }; $('#home').onclick = () => $('#back').click(); return; } session = {mode:'study',items:all,index:idx,correct:0,answered:false}; renderQuestion(); }
 function startMarathon() {
   let order = shuffle(all), previous = state.lastMarathon || [];
   if (order.length > 1 && order.every((item, i) => key(item) === previous[i])) order.push(order.shift());
@@ -182,7 +182,7 @@ function checkAnswer() {
   const typed = $('#typed')?.value.trim(), chosen = s.selected;
   const ok = typed ? isCorrectWrittenAnswer(typed, prompt.answer) : !!chosen && key(chosen) === key(item);
   record(item, !!ok); s.answered = true;
-  if (ok) { s.correct++; if (s.mode === 'study') s.blockCorrect++; }
+  if (ok) s.correct++;
   showFeedback(!!ok,prompt.answer,typed || (chosen ? (chosen.kind==='word'?chosen.meaning:chosen.term) : ''));
   document.querySelectorAll('[data-opt]').forEach((button,i) => {
     button.disabled = true;
@@ -216,18 +216,12 @@ function showFeedback(correct, answer, given) {
 }
 function advance() {
   const s = session; s.index++;
-  if (s.mode === 'study' && s.index % 10 === 0 && s.index < s.items.length) { showBlockResult(); return; }
+  if (s.mode === 'study') { state.studyIndex = s.index; save(); }
   if (s.index >= s.items.length) { showFinal(); return; }
   renderQuestion();
 }
-function showBlockResult() {
-  const s = session, correct = s.blockCorrect; s.blockCorrect = 0;
-  state.tests = (state.tests || 0) + 1; save();
-  $('#workArea').innerHTML = `<div class="result"><div class="eyebrow">ПРОМЕЖУТОЧНЫЙ ЗАЧЁТ</div><div class="score">${correct}/10</div><h3>Блок завершён</h3><p class="muted">Правильных ответов: ${correct} из 10.</p><div class="result-actions"><button class="primary" id="continue">Следующие 10 →</button><button class="secondary" id="restart">Начать сначала</button></div></div>`;
-  $('#continue').onclick = renderQuestion; $('#restart').onclick = startStudy;
-}
 function showFinal() {
-  const s = session; state.tests = (state.tests || 0) + 1;
+  const s = session; if (s.mode !== 'study') state.tests = (state.tests || 0) + 1;
   const pct = Math.round(s.correct / s.items.length * 100);
   const wordCount = s.kindTotal?.word || 0, defCount = s.kindTotal?.definition || 0;
   const wordRight = s.kindCorrect?.word || 0, defRight = s.kindCorrect?.definition || 0;
